@@ -9,6 +9,7 @@ export default async function (input, ctx) {
   if (!gameId) throw new EndpointError('No game selected', { code: 'NO_GAME' })
   const { user, game, joined } = await requirePlayer(ctx, gameId)
   if (!joined) await refreshPlayer(game.id, user.id, displayName(user), user.photo_url ?? null)
+  if (game.status === 'abandoned') throw new EndpointError('Game was closed', { code: 'GAME_CLOSED' })
   const puzzle = await loadPuzzle(game.puzzleId)
   const cells = (await loadCells(game.id)).map(toClientCell)
   // An old link may point at a finished game while the chat already plays the next one.

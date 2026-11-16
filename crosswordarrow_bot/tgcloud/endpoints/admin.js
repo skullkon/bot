@@ -11,6 +11,7 @@ export default async function (input, ctx) {
   if (input.action === 'import') return importPuzzles(Array.isArray(input.puzzles) ? input.puzzles : [])
   if (input.action === 'retire') return retire(String(input.except ?? ''))
   if (input.action === 'stats') return stats()
+  if (input.action === 'abandon') return abandon()
   throw new EndpointError('Unknown action', { code: 'BAD_ACTION' })
 }
 
@@ -40,6 +41,13 @@ async function retire(except) {
   if (!keep) throw new EndpointError('That series has no puzzles', { code: 'EMPTY_SERIES' })
   const res = await db.run(sql`UPDATE puzzles SET retired = 1 WHERE retired = 0 AND slug NOT LIKE ${except + '-%'}`)
   return { retired: res.rowsAffected, live: keep }
+}
+
+// Closes every unfinished game; the chats start from scratch with their next /play.
+async function abandon() {
+  const res = await db.run(sql`UPDATE games SET status = 'abandoned' WHERE status = 'active'`)
+  await db.run(sql`DELETE FROM presence WHERE game_id IN (SELECT id FROM games WHERE status = 'abandoned')`)
+  return { abandoned: res.rowsAffected }
 }
 
 async function stats() {
