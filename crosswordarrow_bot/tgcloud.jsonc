@@ -1,0 +1,7 @@
+{
+  // The Mini App: `npm run build` puts it into dist/, `npm run deploy` builds and pushes.
+  "static": {
+    "source": "dist"
+  },
+  "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json"
+}
