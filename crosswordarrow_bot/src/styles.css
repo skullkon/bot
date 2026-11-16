@@ -62,13 +62,14 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .offline { font-size: 12px; color: #d9480f; white-space: nowrap; }
 .avatars { display: flex; align-items: center; }
 .avatar {
+  width: var(--s, 24px); height: var(--s, 24px); font-size: calc(var(--s, 24px) * 0.48);
   display: inline-flex; align-items: center; justify-content: center; flex: none;
   border-radius: 50%; background: var(--c); color: #fff; font-weight: 600;
   box-shadow: 0 0 0 2px var(--bg);
   overflow: hidden; margin-left: 4px; transition: opacity 0.3s, filter 0.3s;
 }
 :root[data-theme='dark'] .avatar { color: #10151a; }
-.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar img { display: block; width: 100%; height: 100%; max-width: none; object-fit: cover; }
 .avatar.dim { opacity: 0.4; filter: grayscale(0.7); }
 .more { font-size: 12px; color: var(--muted); margin-left: 6px; }
 .progress { height: 3px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
@@ -98,7 +99,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .clue-half.done { opacity: 0.42; }
 
 .letter {
-  background: var(--surface); display: flex; align-items: center; justify-content: center;
+  background: var(--surface); color: var(--ink, var(--text)); display: flex; align-items: center; justify-content: center;
   font-weight: 600; font-size: calc(var(--cell) * 0.56); line-height: 1; cursor: pointer;
   transition: background 0.12s;
 }
@@ -139,6 +140,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .hint:active, .nav:active { background: var(--bg); }
 .clue-main { flex: 1; min-width: 0; padding: 0 4px; }
 .clue-big { font-size: 16.5px; font-weight: 500; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.also { color: var(--ink); }
 .clue-meta { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 

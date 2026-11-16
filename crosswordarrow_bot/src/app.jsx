@@ -87,7 +87,7 @@ function initials(name) {
 function Avatar({ player, color, dim, size = 24 }) {
   const [broken, setBroken] = useState(false)
   return (
-    <span class={`avatar${dim ? ' dim' : ''}`} style={{ '--c': color, width: size, height: size, fontSize: size * 0.48 }} title={player.name}>
+    <span class={`avatar${dim ? ' dim' : ''}`} style={{ '--c': color, '--s': `${size}px` }} title={player.name}>
       {player.photoUrl && !broken
         ? <img src={player.photoUrl} alt="" onError={() => setBroken(true)} />
         : initials(player.name)}
@@ -217,7 +217,7 @@ function Grid({ store, s }) {
     if (pending?.reveal) cls += ' revealing'
     const style = {}
     if (locked) style['--tint'] = store.colorOf(server.lockedBy ?? server.userId)
-    else if (letter && author != null) style.color = store.colorOf(author)
+    else if (letter && author != null) style['--ink'] = store.colorOf(author)
     if (other != null) style['--other'] = store.colorOf(other)
     cells.push(
       <div key={idx} class={cls} style={style} onClick={() => { store.selectCell(idx); openKeyboard() }}>
@@ -249,7 +249,7 @@ function ClueBar({ store, s }) {
         <div class="clue-big">{word?.clue}</div>
         <div class="clue-meta">
           {word?.len} {plural(word?.len ?? 0, 'буква', 'буквы', 'букв')} · {word?.dir === 'right' ? 'по горизонтали' : 'по вертикали'}
-          {watching.length > 0 && <span class="also" style={{ color: store.colorOf(watching[0].userId) }}> · здесь {watching.map((p) => p.name.split(' ')[0]).join(', ')}</span>}
+          {watching.length > 0 && <span class="also" style={{ '--ink': store.colorOf(watching[0].userId) }}> · здесь {watching.map((p) => p.name.split(' ')[0]).join(', ')}</span>}
         </div>
       </div>
       <button class="hint" aria-label="Открыть букву" {...keepKeyboard} onClick={tap(() => { haptic('light'); store.hint() })}>
