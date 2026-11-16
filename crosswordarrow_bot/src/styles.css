@@ -41,7 +41,11 @@ body {
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
 
 .app {
-  height: 100%;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--app-top, 0px);
+  height: var(--app-h, 100%);
   display: flex;
   flex-direction: column;
   max-width: 620px;
@@ -60,8 +64,8 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .avatar {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
   border-radius: 50%; background: var(--c); color: #fff; font-weight: 600;
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--c);
-  overflow: hidden; margin-left: 7px; transition: opacity 0.3s, filter 0.3s;
+  box-shadow: 0 0 0 2px var(--bg);
+  overflow: hidden; margin-left: 4px; transition: opacity 0.3s, filter 0.3s;
 }
 :root[data-theme='dark'] .avatar { color: #10151a; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -71,7 +75,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .progress i { display: block; height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.5s; }
 
 /* ---- grid ---- */
-.board { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 4px 10px; }
+.board { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 8px 12px; }
 .grid {
   display: grid; gap: 1px; width: max-content; margin: 0 auto; box-sizing: content-box;
   background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
@@ -95,12 +99,12 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 
 .letter {
   background: var(--surface); display: flex; align-items: center; justify-content: center;
-  font-weight: 600; font-size: calc(var(--cell) * 0.6); line-height: 1; cursor: pointer;
+  font-weight: 600; font-size: calc(var(--cell) * 0.56); line-height: 1; cursor: pointer;
   transition: background 0.12s;
 }
 .letter.in-word { background: var(--word-bg); }
-.letter.locked { color: var(--text); background: color-mix(in srgb, var(--tint) 14%, var(--surface)); }
-.letter.locked.in-word { background: color-mix(in srgb, var(--tint) 14%, var(--word-bg)); }
+.letter.locked { color: var(--tint); background: color-mix(in srgb, var(--tint) 7%, var(--surface)); }
+.letter.locked.in-word { background: color-mix(in srgb, var(--tint) 7%, var(--word-bg)); }
 .letter.cursor { box-shadow: inset 0 0 0 2.5px var(--accent); z-index: 2; }
 .letter.cursor:not(.locked):empty::after,
 .letter.cursor.revealing::after { content: ''; width: 2px; height: 46%; background: var(--accent); animation: blink 1.1s steps(2) infinite; }
@@ -137,15 +141,13 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .clue-big { font-size: 16.5px; font-weight: 500; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .clue-meta { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.keyboard { padding: 7px 3px 0; }
-.krow { display: flex; justify-content: center; gap: 4px; margin-bottom: 6px; }
-.key {
-  flex: 1 1 0; max-width: 46px; height: 42px; border-radius: 6px; background: var(--key-bg);
-  box-shadow: 0 1px 0 var(--key-shadow); font-size: 18px; font-weight: 500;
-  display: flex; align-items: center; justify-content: center; touch-action: none;
+
+/* The field that summons the system keyboard: present, focusable, invisible.
+   16px keeps iOS from zooming in on focus. */
+.typing {
+  position: fixed; top: 0; left: 0; width: 1px; height: 1px; padding: 0; border: 0;
+  opacity: 0; font-size: 16px; caret-color: transparent; pointer-events: none;
 }
-.key:active { background: var(--word-bg); transform: translateY(1px); }
-.key.wide { flex: 1.6 1 0; max-width: 70px; color: var(--muted); }
 
 /* ---- solved ---- */
 .sheet {
@@ -157,7 +159,7 @@ button { font: inherit; color: inherit; border: 0; background: none; padding: 0;
 .sheet h2 { margin: 0 0 10px; font-size: 19px; font-weight: 600; }
 .board-list { list-style: none; margin: 0 0 14px; padding: 0; }
 .board-list li { display: flex; align-items: center; gap: 8px; padding: 7px 0; }
-.board-list .avatar { margin-left: 4px; margin-right: 4px; }
+.board-list .avatar { margin: 0 4px; }
 .medal { width: 22px; text-align: center; font-size: 17px; }
 .who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; margin-left: 4px; }
 .score { color: var(--muted); font-size: 14px; white-space: nowrap; }

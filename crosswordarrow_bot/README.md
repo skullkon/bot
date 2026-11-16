@@ -26,7 +26,7 @@ npm run deploy                 # собрать мини-приложение и
 npx tgcloud migrate            # применить изменения схемы базы
 
 npm run dict                   # собрать tools/dict/dictionary.json из частей
-npm run masks -- 100           # добавить 100 раскладок в tools/generator/masks.json
+npm run masks -- 100           # добавить 100 раскладок 8×13 в tools/generator/masks.json
 npm run generate -- s9 300 1   # серия s9 из 300 сканвордов, зерно 1
 npm run upload -- s9 --retire  # залить серию в бота, остальные снять с ротации
 ```

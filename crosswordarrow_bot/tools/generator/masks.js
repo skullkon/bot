@@ -11,8 +11,8 @@ const OUT = process.env.MASK_OUT ?? path.join(path.dirname(file), 'masks.json')
 
 if (isMainThread) {
   const count = Number(process.argv[2] ?? 100)
-  const W = Number(process.argv[3] ?? 10)
-  const H = Number(process.argv[4] ?? 14)
+  const W = Number(process.argv[3] ?? 8)
+  const H = Number(process.argv[4] ?? 13)
   const seed = Number(process.argv[5] ?? 1)
   const pool = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : []
   const have = new Set(pool.map((m) => m.mask))
@@ -33,7 +33,9 @@ if (isMainThread) {
 } else {
   const { W, H } = workerData
   parentPort.on('message', (seed) => {
-    const best = generateMask(W, H, mulberry32(seed * 7919 + W * 31 + H), JSON.parse(process.env.MASK_OPTS ?? '{}'))
+    // Narrow phone-sized grids take fewer long words and fewer short ones.
+    const preset = W <= 8 ? { minLong: 4, maxShort: 13, maxDouble: 7, max3: 3 } : {}
+    const best = generateMask(W, H, mulberry32(seed * 7919 + W * 31 + H), { ...preset, ...JSON.parse(process.env.MASK_OPTS ?? '{}') })
     if (best.hard !== 0) return parentPort.postMessage(null)
     parentPort.postMessage({ w: W, h: H, seed, soft: Number(best.soft.toFixed(2)), mask: [...best.mask].join('') })
   })

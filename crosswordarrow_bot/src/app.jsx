@@ -3,7 +3,22 @@ import { normalizeLetter, formatDuration, plural } from '../tgcloud/lib/core.js'
 import { haptic, telegram } from './api.js'
 import { setDarkPalette } from './store.js'
 
-const ROWS = ['ЙЦУКЕНГШЩЗХЪ', 'ФЫВАПРОЛДЖЭ', 'ЯЧСМИТЬБЮ']
+// Letters typed on a Latin layout land where they sit on the Russian one (q -> Й).
+const LATIN = Object.fromEntries([..."qwertyuiop[]asdfghjkl;'zxcvbnm,.`"].map((ch, i) => [ch, 'ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЕ'[i]]))
+const toLetter = (ch) => normalizeLetter(ch) ?? (LATIN[ch.toLowerCase()] ? LATIN[ch.toLowerCase()] : null)
+
+// The system keyboard only opens for a focused text field, so the game keeps one
+// out of sight and reads what is typed into it. Its value is never empty, or a
+// backspace on an empty field would not reach us on Android.
+const SENTINEL = '\u00a0\u00a0'
+let field = null
+let fieldFocused = false
+const openKeyboard = () => {
+  if (!field) return
+  field.focus({ preventScroll: true })
+  field.value = SENTINEL
+  field.setSelectionRange(SENTINEL.length, SENTINEL.length)
+}
 
 function useStore(store) {
   const [, force] = useReducer((n) => n + 1, 0)
@@ -30,7 +45,9 @@ export function App({ store }) {
   useEffect(() => {
     const onKey = (e) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return
-      const letter = normalizeLetter(e.key)
+      // Letters typed into the hidden field arrive through its input event.
+      if (e.target === field && e.key !== 'Backspace' && !e.key.startsWith('Arrow') && e.key !== 'Enter' && e.key !== 'Tab') return
+      const letter = e.key.length === 1 ? toLetter(e.key) : null
       if (letter) store.type(letter)
       else if (e.key === 'Backspace') store.backspace()
       else if (e.key === 'ArrowLeft') store.moveCursor(-1, 0)
@@ -56,22 +73,21 @@ export function App({ store }) {
       {solved ? <SolvedSheet store={store} s={s} /> : (
         <div class="dock">
           <ClueBar store={store} s={s} />
-          <Keyboard store={store} />
         </div>
       )}
+      {!solved && <TypingField store={store} />}
     </div>
   )
 }
 
 function initials(name) {
-  const parts = name.trim().split(/\s+/)
-  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?'
+  return (name.trim()[0] ?? '?').toUpperCase()
 }
 
-function Avatar({ player, color, dim, size = 28 }) {
+function Avatar({ player, color, dim, size = 24 }) {
   const [broken, setBroken] = useState(false)
   return (
-    <span class={`avatar${dim ? ' dim' : ''}`} style={{ '--c': color, width: size, height: size, fontSize: size * 0.38 }} title={player.name}>
+    <span class={`avatar${dim ? ' dim' : ''}`} style={{ '--c': color, width: size, height: size, fontSize: size * 0.48 }} title={player.name}>
       {player.photoUrl && !broken
         ? <img src={player.photoUrl} alt="" onError={() => setBroken(true)} />
         : initials(player.name)}
@@ -84,7 +100,7 @@ function TopBar({ store, s }) {
   const total = s.words.length
   const online = new Set(s.presence.map((p) => p.userId))
   online.add(s.me)
-  const shown = [...s.players].sort((a, b) => online.has(b.userId) - online.has(a.userId)).slice(0, 6)
+  const shown = [...s.players].sort((a, b) => online.has(b.userId) - online.has(a.userId)).slice(0, 5)
   return (
     <header class="top">
       <div class="top-row">
@@ -168,7 +184,7 @@ function Grid({ store, s }) {
     if (clue) {
       const active = clue.slots.some((x) => x.wordId === s.sel.wordId)
       cells.push(
-        <div key={idx} class={`cell clue${clue.slots.length > 1 ? ' split' : ''}${active ? ' active' : ''}`} onClick={() => store.selectCell(idx)}>
+        <div key={idx} class={`cell clue${clue.slots.length > 1 ? ' split' : ''}${active ? ' active' : ''}`} onClick={() => { store.selectCell(idx); openKeyboard() }}>
           {clue.slots.map((x) => {
             const w = s.words[x.wordId]
             return (
@@ -204,7 +220,7 @@ function Grid({ store, s }) {
     else if (letter && author != null) style.color = store.colorOf(author)
     if (other != null) style['--other'] = store.colorOf(other)
     cells.push(
-      <div key={idx} class={cls} style={style} onClick={() => store.selectCell(idx)}>
+      <div key={idx} class={cls} style={style} onClick={() => { store.selectCell(idx); openKeyboard() }}>
         {starts.get(idx)?.map((a) => <i key={a} class={`arrow a-${a}`}>{ARROWS[a]}</i>)}
         {letter}
         {other != null && <i class="other" />}
@@ -228,42 +244,80 @@ function ClueBar({ store, s }) {
   const watching = s.presence.filter((p) => p.wordId === word?.id).map((p) => s.players.find((x) => x.userId === p.userId)).filter(Boolean)
   return (
     <div class="cluebar">
-      <button class="nav" aria-label="Предыдущее слово" onClick={() => store.stepWord(-1)}>‹</button>
-      <div class="clue-main">
+      <button class="nav" aria-label="Предыдущее слово" {...keepKeyboard} onClick={tap(() => store.stepWord(-1))}>‹</button>
+      <div class="clue-main" onClick={openKeyboard}>
         <div class="clue-big">{word?.clue}</div>
         <div class="clue-meta">
           {word?.len} {plural(word?.len ?? 0, 'буква', 'буквы', 'букв')} · {word?.dir === 'right' ? 'по горизонтали' : 'по вертикали'}
           {watching.length > 0 && <span class="also" style={{ color: store.colorOf(watching[0].userId) }}> · здесь {watching.map((p) => p.name.split(' ')[0]).join(', ')}</span>}
         </div>
       </div>
-      <button class="hint" aria-label="Открыть букву" onClick={() => { haptic('light'); store.hint() }}>
+      <button class="hint" aria-label="Открыть букву" {...keepKeyboard} onClick={tap(() => { haptic('light'); store.hint() })}>
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2.2h5c.1-1 .5-1.7 1.1-2.2A6 6 0 0 0 12 3Z" /></svg>
       </button>
-      <button class="nav" aria-label="Следующее слово" onClick={() => store.stepWord(1)}>›</button>
+      <button class="nav" aria-label="Следующее слово" {...keepKeyboard} onClick={tap(() => store.stepWord(1))}>›</button>
     </div>
   )
 }
 
-function Keyboard({ store }) {
-  const press = (fn) => (e) => {
-    e.preventDefault()
-    haptic('key')
-    fn()
+function TypingField({ store }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    field = ref.current
+    field.value = SENTINEL
+    return () => {
+      field?.blur()
+      field = null
+      fieldFocused = false
+    }
+  }, [])
+  const reset = (el) => {
+    el.value = SENTINEL
+    el.setSelectionRange(SENTINEL.length, SENTINEL.length)
+  }
+  const onInput = (e) => {
+    const el = e.currentTarget
+    const kind = e.inputType ?? ''
+    if (kind.startsWith('delete')) {
+      store.backspace()
+    } else if (e.data) {
+      // A keyboard that composes words re-sends the whole word: only its last letter is new.
+      const chars = kind === 'insertCompositionText' ? [...e.data].slice(-1) : [...e.data]
+      for (const ch of chars) {
+        const letter = toLetter(ch)
+        if (letter) store.type(letter)
+      }
+    } else if (el.value.length < SENTINEL.length) {
+      store.backspace()
+    }
+    reset(el)
   }
   return (
-    <div class="keyboard">
-      {ROWS.map((row, r) => (
-        <div class="krow" key={r}>
-          {[...row].map((ch) => <button key={ch} class="key" onPointerDown={press(() => store.type(ch))}>{ch}</button>)}
-          {r === 2 && (
-            <button class="key wide" aria-label="Стереть" onPointerDown={press(() => store.backspace())}>
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5h11a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-6-7 6-7ZM12 9.5l5 5M17 9.5l-5 5" /></svg>
-            </button>
-          )}
-        </div>
-      ))}
-    </div>
+    <input
+      ref={ref}
+      class="typing"
+      type="text"
+      lang="ru"
+      inputMode="text"
+      enterKeyHint="next"
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="characters"
+      spellcheck={false}
+      aria-label="Ввод букв"
+      onInput={onInput}
+      onFocus={() => { fieldFocused = true }}
+      onBlur={() => { fieldFocused = false }}
+    />
   )
+}
+
+// Buttons must not take the focus away from the field, or the keyboard would close.
+const keepKeyboard = { onPointerDown: (e) => e.preventDefault(), onMouseDown: (e) => e.preventDefault() }
+const tap = (fn) => () => {
+  const wasOpen = fieldFocused
+  fn()
+  if (wasOpen) openKeyboard()
 }
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -278,7 +332,7 @@ function SolvedSheet({ store, s }) {
         {board.map((p, i) => (
           <li key={p.userId}>
             <span class="medal">{board.length > 1 ? MEDALS[i] ?? '' : ''}</span>
-            <Avatar player={p} color={store.colorOf(p.userId)} size={32} />
+            <Avatar player={p} color={store.colorOf(p.userId)} size={28} />
             <span class="who">{p.name}</span>
             <span class="score">
               <b>{p.words}</b> {plural(p.words, 'слово', 'слова', 'слов')}

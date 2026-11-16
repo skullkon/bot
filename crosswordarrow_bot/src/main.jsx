@@ -18,6 +18,18 @@ try {
   tg?.disableVerticalSwipes?.()
 } catch { /* not in Telegram */ }
 
+// Keep the game inside the part of the screen the keyboard leaves free.
+const vv = window.visualViewport
+if (vv) {
+  const fit = () => {
+    document.documentElement.style.setProperty('--app-h', `${vv.height}px`)
+    document.documentElement.style.setProperty('--app-top', `${vv.offsetTop}px`)
+  }
+  vv.addEventListener('resize', fit)
+  vv.addEventListener('scroll', fit)
+  fit()
+}
+
 createApi().then((api) => {
   const store = createStore(api, haptic)
   document.addEventListener('visibilitychange', () => { if (!document.hidden) store.wake() })
