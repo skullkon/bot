@@ -1,3 +1,4 @@
+// "Next scanword" inside the Mini App once the current one is solved.
 import { EndpointError } from 'sdk'
 import { requirePlayer } from '../lib/access.js'
 import { startGameInChat } from '../lib/announce.js'

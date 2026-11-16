@@ -2,11 +2,23 @@
   "name": "crosswordarrow_bot",
   "private": true,
   "devDependencies": {
-    "@tgcloud/cli": "^0.2.0"
+    "@fontsource/fira-sans-extra-condensed": "^5.3.0",
+    "@fontsource/golos-text": "^5.3.0",
+    "@preact/preset-vite": "^2.10.6",
+    "@tgcloud/cli": "^0.2.0",
+    "json5": "^2.2.3",
+    "preact": "^11.2.0",
+    "vite": "^6.4.6"
   },
   "scripts": {
-    "deploy": "tgcloud push",
+    "dev": "vite",
+    "build": "vite build",
+    "deploy": "vite build && tgcloud push",
     "status": "tgcloud status",
-    "run": "tgcloud run"
-  }
+    "masks": "node tools/generator/masks.js",
+    "generate": "node tools/generator/generate.js",
+    "dict": "node tools/dict/build.mjs",
+    "upload": "node tools/upload.js"
+  },
+  "type": "module"
 }
