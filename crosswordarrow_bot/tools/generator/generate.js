@@ -9,8 +9,10 @@ import { buildIndex, fillMask } from './fill.js'
 import { validatePuzzle, arrowKind } from '../../tgcloud/lib/core.js'
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..')
+// How many following puzzles a word stays out of, by length: short words are few.
 const WINDOW = 30
-const FILL_TRIES = 25
+const windowFor = (len) => (len <= 3 ? 6 : len === 4 ? 10 : len === 5 ? 20 : WINDOW)
+const FILL_TRIES = 10
 
 export function buildPuzzle({ slug, W, H, slots, clueOf, words, clueFor }) {
   // Number the words in reading order of their clue cells.
@@ -53,15 +55,16 @@ function main() {
   let failedMasks = 0
 
   while (puzzles.length < count) {
-    if (cursor >= order.length * 3) throw new Error(`layout pool exhausted after ${puzzles.length} puzzles — add layouts`)
+    if (cursor >= order.length * 12) throw new Error(`layout pool exhausted after ${puzzles.length} puzzles — add layouts`)
     const m = masks[order[cursor++ % order.length]]
     const mask = Uint8Array.from(m.mask, Number)
     const a = analyze(mask, m.w, m.h, DEFAULT_MASK_OPTS)
     if (a.hard !== 0) throw new Error(`layout ${m.seed} is broken`)
-    const banned = new Set(recent.flat())
+    const banned = new Set()
+    recent.forEach((words, age) => { for (const w of words) if (recent.length - age <= windowFor(w.length)) banned.add(w) })
     let filled = null
     for (let t = 0; t < FILL_TRIES && !filled; t++) {
-      filled = fillMask({ slots: a.slots, W: m.w, H: m.h, index, rnd, banned, usage })
+      filled = fillMask({ slots: a.slots, W: m.w, H: m.h, index, rnd, banned, usage, options: { maxNodes: 6000 } })
     }
     if (!filled) { failedMasks++; continue }
     const slug = `${series}-${String(puzzles.length).padStart(4, '0')}`
@@ -75,6 +78,7 @@ function main() {
     recent.push(filled.words.map((e) => e.w))
     if (recent.length > WINDOW) recent.shift()
     puzzles.push(puzzle)
+    if (puzzles.length % 20 === 0) console.error(`${puzzles.length}/${count} (layouts skipped: ${failedMasks})`)
   }
 
   fs.mkdirSync(`${root}/data/puzzles`, { recursive: true })
